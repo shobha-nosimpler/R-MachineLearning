@@ -1,0 +1,2580 @@
+---
+title: "ml-cluster-analysis"
+author: "shobha mourya"
+date: "April 22, 2019"
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Cluster Analysis
+
+Cluster analysis is a powerful toolkit in the data science workbench. It is used to find groups of observations (clusters) that share similar characteristics. 
+These similarities can inform all kinds of business decisions; for example, in marketing, it is used to identify distinct groups of customers for which advertisements can be tailored. 
+You will learn about two commonly used clustering methods 
+
+1. hierarchical clustering and 
+2. k-means clustering. 
+
+You won't just learn how to use these methods, you'll build a strong intuition 
+for how they work and how to interpret their results. You'll develop this intuition by exploring three different datasets: 
+
+1. soccer player positions (lineup.rds), 
+2. wholesale customer spending data (ws_customers.rds), and 
+3. longitudinal occupational wage data (oes.rds for occupational employment statistics).
+
+## Calculating distance between observations
+
+Cluster analysis seeks to find groups of observations that are similar to one another, but the identified groups are different from each other. This similarity/difference is captured by the metric called distance. 
+
+You will learn how to calculate the distance between observations for both continuous and categorical features. 
+
+You will also develop an intuition for how the scales of your features can affect distance.
+
+* what is cluster analysis?
+* when to cluster?
+* distance between two observations
+* calculate & plot the distance between two players
+* using the dist() function
+* who are the closest players?
+* the importance of scale 
+* effects of scale
+* when to scale data?
+* measuring distance for categorical data
+* calculating distance between categorical variables
+* the closest observation to a pair
+
+## Hierarchical clustering
+
+This will help you answer the last question:
+
+How do you find groups of similar observations (clusters) in your data using 
+the distances that you have calculated? 
+
+You will learn about the fundamental principles of hierarchical clustering 
+ 
+* the linkage criteria and 
+* the dendrogram plot 
+
+and how both are used to build clusters. 
+
+You will also explore data from a wholesale distributor in order to perform market segmentation of clients using their spending habits.
+
+* comparing more than two observations
+* calculating linkage
+* revisited: the closest observation to a pair
+* capturing K clusters
+* assign cluster membership
+* exploring the clusters
+* validataing the clusters
+* visualizing the dendrogram
+* comparing average, single and complete linkage
+* height of the tree
+* cutting the tree
+* clusters based on height
+* exploring the branches cut from the tree
+* what do we know about our clusters
+* making sense of the clusters
+* segment wholesale customers
+* explore wholesale customer clusters
+* interpreting the wholesale customer cluster
+
+## K-means clustering
+
+In this chapter, you will build an understanding of the principles behind 
+the k-means algorithm, learn how to select the right k when it isn't previously 
+known, and revisit the wholesale data from a different perspective.
+
+* introduction to K-means
+* K-means on soccer field
+* K-means on a soccer field (part 2)
+* Evaluating different values of K by eye
+* Many K's many models
+* Elbow (Scree) plot
+* Interpreting the elbow plot
+* Silhouette analysis: Observational level performance
+* Silhouette analysis
+* Making sense of the K-means clusters
+* Revisiting wholesale data: 'Best' k
+* Revisiting wholesale data: Exploration
+
+## Case Study: National Occupational mean wage
+
+You will apply the skills you have learned to explore how the average salary amongst professions have changed over time.
+
+* occupational wage data
+* initial exploration of the data
+* heirarchical clustering: Occupation trees
+* hierarchical clustering: Preparing for exploration
+* hierarchical clustering: Plotting Occupational clusters
+* reviewing the HC Results
+* K-means: Elbow analysis
+* K-means: Average Silhoutte Widths
+* the 'best' number of clusters
+* review K-means results
+
+
+# What is cluster analysis?
+
+* cluster analysis is a form of data exploration and the key to harnessing this power is in  understanding how it works
+* learning the tools is easy part
+* we'll work on the intuitions behind the underlying methods
+* but before we go to how, let's understand what is clustering?
+* no matter whether your working with medical data, retail data or sports data
+* as a data scientist you will often be presented with data that you need to make sense of 
+* to understand what clustering is let's put aside details of our data and focus on toy sample
+* dataset of card suits spread as table A,B,C,D... J as columns with rows of 
+card type club, heart, diamond spade
+* columns are referred as features of our observations
+* in cluster analysis we're interested in grouping members such that all members of a group are similar to one another
+* and at the same time they are distinctly different from all members outside their group
+* so if we group the cards based on what suite appears in each column (order of suite not colour)
+* in this we found three groups and coloured the observations accordingly
+* to see these patterns let's reorganize the observations into their coloured clusters
+* here we start to see the clear patterns that start to emerge
+* fundamentally this is how cluster analysis works Definition
+
+A form of exploratory data analysis (EDA) where observations are divided into meaningful groups that share common characteristics (features).
+
+## So what are the steps involved in cluster analysis?
+
+1. Pre-process Data
+
+* first make sure your data is ready for clustering
+* meaning you data has no missing values and features are in similar scales
+
+2. Select Similarity Measure
+
+* next you must decide what metric is appropriate to capture the similarity between your observations using the features that you have
+
+3. Cluster
+
+* once you have calculated the metric
+* you can use a clustering method to group your observations based on how similar they to each other into clusters
+
+4. Analyze
+
+* but most important you need to analyse the output of these clusters to determine whether they provided any meaningful insight into your data
+* this often requires a deep understanding of the problem and the data that you are working with
+* and this may require you to iterate through your clustering steps until you converge on a meaningful grouping of your data
+* the first few chapters of this course will help you unpack this process
+* you will gain deeper understanding of what it means for two observations to be similar or more specifically dissimilar
+* you will also learn why features of your data need to be comparable to one another
+* you will learn two commonly used clustering methods Hierarchical clustering and K-means clustering
+* you will do two case studies to gain insight into your data using clustering
+
+## When to cluster?
+
+In which of these scenarios would clustering methods likely be appropriate?
+
+1) Using consumer behavior data to identify distinct segments within a market.
+
+2) Predicting whether a given user will click on an ad.
+
+3) Identifying distinct groups of stocks that follow similar trading patterns.
+
+4) Modeling & predicting GDP growth.
+
+
+Possible Answers
+1 
+
+2
+
+4
+
+1 & 3 (answer)
+
+2 & 4
+
+
+That is correct, market segmentation and pattern grouping 
+are both good examples where clustering is appropriate. 
+Coincidentally, you will get the chance to work on both 
+of these types of problems in this course.
+
+
+## Distance between two observations
+
+* let's begin by focusing on a question that is fundamental to R clustering analysis
+* how similar are two observations
+* or from a different perspective how dissimilar are they
+* you see, most clustering methods measure similarity between observations using dissimilarity metric often referred to as distance
+
+$$Distance = 1 - Similarity$$
+
+* these two concepts are just the two sides of the same coin
+* if two observations have a large distance then they are less similar to one another
+* likewise if their distance value is small then they are more similar
+* naturally we should first develop a keen intuition by what is meant by distance
+* so let's work on a a scenario of players on a soccer field 
+* there are two player, blue and red
+* to determine how far apart are  they?
+* to answer this question we first need their coordinates
+* the blue player is in the center of the field which we'll refer to as 0,0 while the red player has the position 12,9 or 12 feet to the right of center and 9 feet out 
+* the players in this case are our observations and x and y 
+coordinates are features of this observation
+* we can use these features to calculate the distance between the two players
+* in this case we will use the distance measure that you're familiar with, the euclidean measure which is the hypotenuse of the triangle formed by the coordinates of these points
+
+$$distance = √((12-0)^2 + (9-0)^2) = 15$$
+
+* this is the fundamental idea of calculating a measure of dissimilarity between the blue and red players
+* to do this in R we use the dist() function to calculate euclidian distances between our observations
+* the function simply requires a data frame or a matrix containing our observations and features
+
+```{r}
+two_players = data.frame('X'= c(0,9), 'Y' = c(0,12))
+two_players
+row.names(two_players) = c("Blue", "Red")
+two_players
+
+dist(two_players, method = 'euclidean')
+```
+
+If we had three players, we would measure the distance two players at a time
+
+```{r}
+three_players = rbind(two_players, Green = c(-2,19))
+three_players
+dist(three_players, method = "euclidean")
+```
+
+* in this case green and red have the smallest distance and hence are closest to one another
+* the dist function will work just as well if we have more features to calculate the distance
+
+Calculate & plot the distance between two players
+
+You've obtained the coordinates relative to the center of the field 
+for two players in a soccer match and would like to calculate the 
+distance between them.
+
+In this exercise you will plot the positions of the 2 players and 
+manually calculate the distance between them by using the euclidean 
+distance formula
+
+Plot their positions from the two_players dataframe using ggplot
+
+
+```{r}
+library(ggplot2)
+
+# Plot the positions of the players
+ggplot(two_players, aes(x = X, y = Y)) + 
+  geom_point() +
+  # Assuming a 40x60 field
+  lims(x = c(-30,30), y = c(-20, 20))
+
+```
+
+
+Extract the positions of the players into two data frames player1 and player2
+
+
+```{r}
+player1 = two_players[1,]
+player2 = two_players[2,]
+player1
+player2
+```
+
+
+Calculate the distance between player1 and player2 by using the euclidean 
+distance formula
+
+```{r}
+player_distance <- sqrt( (player1[,1] - player2[,1])^2 + 
+                           (player1[,2] - player2[,2])^2 )
+player_distance
+```
+
+Excellent work! Using the formula is a great way to learn how distance 
+is measured between two observations.
+
+
+
+# Using the dist() function
+
+Using the euclidean formula manually may be practical for 2 observations 
+but can get more complicated rather quickly when measuring the distance 
+between many observations.
+
+The dist() function simplifies this process by calculating distances 
+between our observations (rows) using their features (columns). In this 
+case the observations are the player positions and the dimensions are 
+their x and y coordinates.
+
+Note: The default distance calculation for the dist() function is 
+euclidean distance
+
+
+Calculate the distance between two players using the dist() function for 
+the dataframe two_players
+
+```{r}
+dist_two_players = dist(two_players)
+dist_two_players
+```
+
+Calculate the distance between three players for the dataframe three_players
+
+```{r}
+dist_three_players = dist(three_players)
+dist_three_players
+```
+
+The dist() function makes life easier when working with many dimensions 
+and observations.
+
+# The importance of scale
+
+* the x and y coordinates are in the same unit hence it is easy
+to compared the distance between players using the euclidean method
+* but what happens when features are not measured in the same manner
+* or when the values of these features are not comparable to one another
+* example a dataset with heights in feet and weight in pounds (lbs) for large number of men in the United States
+* we have to calculate the distance between these individuals
+* two men with same height of 6 feet but different weights 200 & 202 pounds
+will have euclideand distance of 2
+* two men with same weight of 200 pounds but different heights of 6, 8 feet 
+will have euclidean distance of 2
+* but when you put these men side by side are they similar? Would
+you believe that one observation is similar to other two - of course not!
+* then why are their distances the same?
+* this happens because these features are on different scales
+* meaning they have different averges and different expected variability
+* a change is 2 pounds is very different than a change in 2 feet
+* so how can we adjust these features to calculate a distance that better aligns with our expectations
+* to do this we convert our features to be on similar scale with one another
+* there are various methods for doing this but for this course we will use
+the method called standardization
+* this entails updating each measurement of the feature by subtacting the average value of that fearture and then dividing by its standard
+deviation
+
+$$height(scaled) = (height - mean(height))/sd(height)$$
+
+* doing this across all our features places them on a similar scale where
+each feature has a mean of zero and sd of 1
+* in R we can use the scale() function to standardize features to same scale
+* using default parameters will normalize each feature column to have a mean of zero and  a variance of 1
+
+
+## Effects of scale
+
+You have learned that when a variable is on a larger scale than other variables in your data it may disproportionately influence the resulting distance calculated between your observations. Lets see this in action by observing a sample of data from the trees data set.
+
+You will leverage the scale() function which by default centers & scales our column features.
+
+Our variables are the following:
+
+Girth - tree diameter in inches
+Height - tree height in inches
+
+```{r}
+# str(trees)
+# head(trees)
+three_trees = data.frame("Girth" = c(8.3,8.6,10.5), 
+                         "Height" = c(840,780,864))
+
+
+three_trees
+
+```
+
+Calculate the distance matrix for the dataframe three_trees and store it as dist_trees
+
+```{r}
+dist_trees = dist(three_trees)
+dist_trees
+```
+
+Create a new variable scaled_three_trees where the three_trees data is centered & scaled
+
+```{r}
+scaled_three_trees = scale(three_trees)
+scaled_three_trees
+```
+
+Calculate and print the distance matrix for scaled_three_trees and store this as dist_scaled_trees
+
+```{r}
+dist_scaled_trees = dist(scaled_three_trees)
+dist_scaled_trees
+```
+
+Output both dist_trees and dist_scaled_trees matrices and observe the change of which observations have the smallest distance between the two matrices (hint: they have changed)
+
+```{r}
+print('Without Scaling')
+dist_trees
+
+print('With Scaling')
+dist_scaled_trees
+```
+
+Notice that before scaling observations 1 & 3 were the closest but after scaling observations 1 & 2 turn out to have the smallest distance.
+
+# When to scale data?
+
+Below are examples of datasets and their corresponding features.
+
+In which of these examples would scaling not be necessary?
+
+Possible Answers
+Taxi Trips - tip earned ($), distance traveled (km).
+
+Health Measurements of Individuals - height (meters), weight (grams), body fat percentage (%).
+
+Student Attributes - average test score (1-100), distance from school (km), annual household income ($).
+
+Salespeople Commissions - total yearly commision ($), number of trips taken.
+
+None of the above, they all should be scaled when measuring distance.
+(answer)
+
+Correct! In all of these cases it would be a good idea to scale 
+your features.
+
+# Measuring distance for categorical data : Jaccard Distance
+
+* we have worked exclusively with one type of distance metrics euclidean distance metrics
+* this is great starting point and good for data that is continuous
+* but what happens if data you have isn't continuous
+* that is categoriccal
+* let's start with the most basic case of categorical features
+* those that are binary
+* meaning values can be one of the two possibilities 
+* in a survey that captures whether participants of the survey
+like drinking the various types of beverages
+* since they can only answer yes or no, we can code this binary
+response as true or false
+* and we're interested in knowing which participants are similar to
+one another based on their responses
+* we will use the similarity index called the Jaccard Index
+
+$$J(A,B) = A n B / A U B$$
+
+
+* that is number of time they're both true / number of times they are ever true
+
+Calculating Jaccard Distance
+
+  wine	beer	whiskey	vodka
+1	TRUE	TRUE	FALSE	FALSE
+2	FALSE	TRUE	TRUE	TRUE
+
+J(1,2) = 1n2 / 1U2 = 1/4 = 0.25
+
+- so how do we get the distance, well, remember that distance = 1 - similarity
+
+Distance(1,2) = 1 - J(1,2) = 0.75
+
+Calculating Jaccard Distance in R
+
+print(survey_a)
+
+   wine  beer whiskey vodka
+  <lgl> <lgl>   <lgl> <lgl>
+1  TRUE  TRUE    FALSE FALSE
+2 FALSE  TRUE    TRUE  TRUE
+3  TRUE FALSE    TRUE FALSE
+
+dist(survey_a, method = 'binary')
+
+          1         2
+2 0.7500000          
+3 0.6666667 0.7500000
+
+For more than two categories
+- when categorical features have more than two values
+
+	color	sport
+1	red	soccer
+2	green	hockey
+3	blue	hockey
+4	blue	soccer
+...	...	...
+
+* we have gathered the favourite colour and sport of our participants
+* for colour choices were red, green, or blue and for sports the decision was between soccor or hockey
+* to calculate teh distance between these observations 
+* we need to present the absense or presence of each catatory in a process know as  Dummification 
+* essentially we consider each feature-value pair and encode it's presence or absense with a 1 or a 0 which is equivalent to a true or false 
+
+	colorblue	colorgreen	colorred	sporthockey	sportsoccer
+1	0	        0	          1	        0	          1
+2	0	        1	          0	        1	          0
+3	1	        0	          0	        1	          0
+4	1	        0	          0	        0	          1
+...	...	...	...	...	...
+
+* for observation 1, favourite colour is red and fav sport is soccer
+* once our data is dummified, it's just a matter of calculating
+jacard distance between the observations
+
+
+Dummification in R
+
+print(survey_b) 
+
+color  sport
+1   red soccer
+2 green hockey
+3  blue hockey
+4  blue soccer
+
+```{r eval=FALSE}
+library(dummies)
+
+dummy.data.frame(survey_b)
+```
+
+colorblue colorgreen colorred sporthockey sportsoccer
+1         0          0        1           0           1
+2         0          1        0           1           0
+3         1          0        0           1           0
+4         1          0        0           0           1
+
+* so long as you categorical values are encoded as factors
+this functiion will convert them into binary feature value representation
+* we can leverage this to calculate distance for our data
+
+
+```{r eval=FALSE}
+dist(dummy_survey_b, method = 'binary')
+```
+
+  1           2         3
+2 1.0000000                    
+3 1.0000000 0.6666667          
+4 0.6666667 1.0000000 0.6666667
+
+
+Calculating distance between categorical variables
+
+In this exercise you will explore how to calculate binary (Jaccard) distances. In order to calculate distances we will first have to dummify our categories using the dummy.data.frame() from the library dummies
+
+You will use a small collection of survey observations stored in the data frame job_survey with the following columns:
+
+job_satisfaction Possible options: 'Hi', 'Mid', 'Low'
+is_happy Possible options: 'Yes', 'No'
+
+```{r}
+#install.packages("dummies")
+library(readr)
+library(dummies)
+
+#oes <- readRDS("C:/shobha/R/dataFile/oes.rds")
+
+job_survey = data.frame("job_satisfaction" = c("Low", "Low", "Hi", "Low", "Mid"),
+                        "is_happy" = c("No", "No", "Yes", "No", "No"))
+job_survey
+
+str(job_survey)
+
+```
+
+Create a dummified dataframe dummy_survey
+
+```{r}
+dummy_survey = dummy.data.frame(job_survey)
+dummy_survey
+```
+
+Generate a Jaccard distance matrix for the dummified survey data dist_survey using the dist() function using the parameter method = 'binary'
+
+```{r}
+dist_survey = dist(dummy_survey, method = "binary")
+dist_survey
+```
+
+
+Print the original data and the distance matrix
+
+Note the observations with a distance of 0 in the original data (1, 2, and 4)
+* they have same values hence they are completely similar so ditance is 0
+
+```{r}
+job_survey
+```
+
+Great work! 
+
+Notice that this distance metric successfully captured that observations 
+1 and 2 are identical (distance of 0)
+
+The closest observation to a pair
+Below you see a pre-calculated distance matrix between four players 
+on a soccer field. You can clearly see that players 1 & 4 are the closest to 
+one another with a euclidean distance value of 10.
+
+  1	    2	    3
+2	11.7		
+3	16.8	18.0	
+4	10.0	20.6	15.8
+
+If 1 and 4 are the closest players among the four, which player is 
+closest to players 1 and 4?
+
+Possible Answers
+Clearly its player 2!
+
+No! Player 3 makes more sense. ()
+* This can be true with the right method, but do we know which method we are using to make this decision?
+
+Are you kidding me? There isn't enough information to decide.
+(answer)
+
+Great job! We clearly don't have enough information to make this decision 
+without knowing how we compare one observation to a pair of observations. 
+The decision required is known as the linkage method and which you will learn about in the next chapter!
+
+You have finished the chapter 'Calculating distance between observations'!
+
+
+Comparing more than two observations
+* you are presented with a distance matrix that contained the euclidean distances between four soccer players
+
+The Closest Observation to a Pair
+
+  1	    2	    3
+2	11.7		
+3	16.8	18.0	
+4	10.0	20.6	15.8
+
+
+Is 2 closest to group 1,4?
+max(D(2,1), D(2,4)) = max(11.7, 20.6) = 20.6
+
+Is 3 closest to group 1,4?
+max(D(3,1), D(3,4)) = max(16.8, 15.8) = 16.8
+
+- using this approach we can say that based on the
+maximumn distance, observation 3 is closer to group
+1,4
+
+
+# Hierarchical Clustering
+
+* is just the continuation of this approach
+* this clustering method iteratively groups the 
+observations based on their pair-wise distances
+until every observation is linked into one large group
+* the decision how to select the closest observation
+to an existing group is called linkage criteria
+* example max of distance as in previous example
+* this approach is called complete linkage 
+
+## Linkage Criteria
+
+Three most common linkage methods
+
+1. Complete Linkage: maximum distance between two sets
+2. Single Linkage: minimum distance between two sets
+3. Average Linkage: average distance between two sets
+
+## Calculating linkage
+
+Let us revisit the example with three players on a field. 
+The distance matrix between these three players is shown below 
+and is available as the variable dist_players.
+
+From this we can tell that the first group that forms is between players 
+1 & 2, since they are the closest to one another with a euclidean 
+distance value of 11.
+
+Now you want to apply the three linkage methods you have learned to 
+determine what the distance of this group is to player 3.
+
+  1	  2
+2	11	
+3	16	18
+
+```{r eval=FALSE}
+str(dist_players)
+```
+
+
+
+Note: dist_players is a matrix of three values
+to access first value dis_player[1], second dist_players[2] and so on
+
+```{r eval=FALSE}
+# Extract the pair distances
+distance_1_2 <- dist_players[1]
+distance_1_3 <- dist_players[2]
+distance_2_3 <- dist_players[3]
+
+# Calculate the complete distance between group 1-2 and 3
+max(c(distance_1_3, distance_2_3))
+#[1] 18.02776
+
+
+# Calculate the single distance between group 1-2 and 3
+min(c(distance_1_3, distance_2_3))
+#[1] 16.76305
+
+
+# Calculate the average distance between group 1-2 and 3
+mean(c(distance_1_3, distance_2_3))
+#[1] 17.39541
+
+```
+
+Great work! 
+Now you have all the knowledge you need to tackle exercise 12 from chapter 1.
+
+dist_players
+'     1        2        3
+2 11.66190                  
+3 16.76305 18.02776         
+4 10.04988 20.61553 15.81139'
+
+distance of 2 from group 1,4 is distance between 2,1 and 2,4 cell values
+
+```{r eval=FALSE}
+
+# complete linkage 
+max(11.7,20.6)
+#[1] 20.6
+
+max(16.8,15.8)
+#[1] 16.8
+
+```
+
+As per complete linkage, 3 is closer than 2 to group 1,4
+
+```{r}
+# single linkage
+min(11.7,20.6)
+#[1] 11.7
+
+min(16.8,15.8)
+#[1] 15.8
+
+```
+
+As per single linkage, 2 is closer than 3 to group 1,4
+
+
+```{r}
+# average linkage
+mean(11.7,20.6)
+#[1] 11.7
+
+mean(16.8,15.8)
+#[1] 16.8
+```
+
+As per average linkage, 2 is closer than 3 to group 1,4
+
+
+This is correct, you can see that the choice of the linkage method can drastically change the result of this question.
+
+
+# Capturing K cluster
+
+* we saw how to group multiple observations using linkage analysis
+* now you are ready to leverage this technique to group you observations
+in a predefined number of clusters
+
+* the process of identifying a predefined number of clusters
+which we will refer to as K, is as simple as undoing the last K-1 steps
+of the linkage grouping
+* how to do this in R
+
+Hierarchical Clustering in R
+* let's use the players dataset below
+
+print(players)
+x     y 
+<dbl> <dbl>
+1    -1     1 
+2    -2    -3 
+3     8     6 
+4     7    -8 
+5   -12     8 
+6   -15     0
+
+
+
+* to get the euclidean distance between each player we use the 
+dist function
+
+dist_players <- dist(players, method = 'euclidean')
+
+* then we do the linkage stesp using the hclust function that accepts the
+distance matrix and the linkage method as the input, the default
+linkage method is the complete method
+* this results in an hclust object containing linkage steps
+and can now be used to extract clusters
+
+**hc_players <- hclust(dist_players, method = 'complete')**
+
+
+# Extracting K Clusters
+
+* to extract which observation belongs to which cluster we use
+the cutree function
+* in this case we want to have two clusters because we 
+know there are two teams
+* so we pass the hclust object and number of clusters we want
+* the output of cutree is a vector which represents which cluster
+each observation belongs to
+
+**cluster _ assignments = cutree(hc_player, k =2)**
+
+print(cluster_assignments)
+[1] 1 1 1 1 2 2
+
+* we can append this back to our original data frame to do further
+analysis with the now clustered observations
+
+library(dplyr)
+players_clustered = players %>%
+            mutate(cluster = cluster_assignments)
+
+print(players_clustered)
+
+      x     y cluster
+  <dbl> <dbl>   <int>
+1    -1     1       1
+2    -2    -3       1
+3     8     6       1
+4     7    -8       1
+5   -12     8       2
+6   -15     0       2
+
+
+# Visualizing K-Clusters
+
+* one way we can analyse the clustering result is to plot the position
+of these players and colour the points based on their cluster assignment
+
+**ggplot(players, aes(x = x, y = y, col = factor(cluster))) +
+  goem_point()**
+
+* we can see four red points, representing cluster 1 and 
+two blue points representing cluster 2
+
+{Summary of steps }
+
+* remember this clustering incorporates several decisions
+* the distance matrix using euclidean
+* linkage method used was complete
+* and k was 2
+* changing any of this may and likely will impact the resulting clusters
+* this is why it is crucial to analyse the results to see if they actually make sense
+* for example in this case the cluster analysis was aimed at identifying the teams to which the players belong to based on the positions at the start of the game
+* since soccer games have same number of players on each team the results of this clustering are incorrect (four in cluster 1 and 2 in cluster 2)
+* and we need to consider a different distance or linkage criteria
+* incorporating and understanding of your data & your problem into clustering analysis is the key to successfully leveraging this tool
+* so let's practice
+
+
+# Assign cluster membership
+
+In this exercise you will leverage the hclust() function to calculate 
+the iterative linkage steps and you will use the cutree() function to 
+extract the cluster assignments for the desired number (k) of clusters.
+
+
+You are given the positions of 12 players at the start of a 6v6 soccer 
+match. This is stored in the lineup dataframe.
+
+You know that this match has two teams (k = 2), let's use the clustering 
+methods you learned to assign which team each player belongs in based on 
+their position.
+
+Notes:
+
+* The linkage method can be passed via the method parameter: 
+hclust(distance_matrix, method = 'complete')
+
+* Remember that in soccer opposing teams start on their half of the field.
+
+* Because these positions are measured using the same scale we do not need
+to re-scale our data.
+
+
+
+```{r}
+library(ggplot2)
+library(readr)
+library(dplyr)
+
+lineup = read_rds("C:/shobha/R/DataCamp/dataFiles/RDS-files/lineup.rds")
+
+str(lineup)
+
+glimpse(lineup)
+
+#Calculate the euclidean distance matrix dist_players among all twelve players
+
+dist_players = dist(lineup, method = "euclidean")
+str(dist_players)
+
+
+class(dist_players)
+
+```
+
+It is a distance matrix
+
+Perform the complete linkage calculation for hierarchical clustering 
+using hclust and store this as hc_players
+
+
+```{r}
+hc_players = hclust(dist_players, method = 'complete')
+
+#Build the cluster assignment vector clusters_k2 using cutree() with a k = 2
+
+
+clusters_k2 = cutree(hc_players, k = 2)
+```
+
+Append the cluster assignments as a column cluster to the lineup data frame 
+and save the results to a new dataframe called lineup_k2_complete
+
+```{r}
+lineup_k2_complete = lineup %>% 
+          mutate(cluster = clusters_k2)
+
+head(lineup_k2_complete)
+```
+
+Fantastic job! In the next exercise we will explore this result.
+
+# Exploring the clusters
+
+Because clustering analysis is always in part qualitative, it is incredibly 
+important to have the necessary tools to explore the results of the clustering.
+
+In this exercise you will explore that data frame you created in the previous 
+exercise lineup_k2_complete.
+
+Reminder: The lineup_k2_complete dataframe contains the x & y positions of 12 
+players at the start of a 6v6 soccer game to which you have added clustering 
+assignments based on the following parameters:
+
+Distance: Euclidean
+Number of Clusters (k): 2
+Linkage Method: Complete
+
+Using count() from dplyr, count the number of players assigned to each cluster.
+
+
+```{r}
+count(lineup_k2_complete, cluster)
+
+lineup_k2_complete %>% group_by(cluster) %>%
+  summarise(n())
+
+```
+
+Using ggplot(), plot the positions of the players and color them by cluster 
+assignment.
+
+```{r}
+ggplot(lineup_k2_complete, aes(x = x, y = y, col = factor(cluster))) +
+  geom_point()
+```
+
+
+* there are 6 red points on left side and 6 green points on the right side
+* thus forming two sides representing two teams of players
+
+You're doing great! 
+Think carefully about whether these results make sense to you and why.
+
+
+# Visualizing the Dendogram
+
+* the process of hierarchical clustering involves iteratively
+grouping observations via pair-wise comparisons
+* until all observations are gathered into a single group
+* we can represent this group visually using a plot called the 
+dendogram
+* also known as the tree diagram
+* the dendogram includes a very important attribute of our group
+the distance between the observations that were grouped
+* this is captured by the hide axis
+* for example  D(1,2) is 4.1 then the height of their shared branch is at 
+4.1 
+* distance of observation 4 from group 1,2 D((1,2), 4) is 12 so the hieght
+of their shared branch will be 12, which implies that the members of this 
+branch have a euclidean distance between each other of 12 or less 
+* we will leverage this attribute of the tree in the next video
+* but in the meantime let's build the dendogram
+* as we continue adding groups and connecting by branches all 
+observations are under a single tree or group
+* this is not done manually in R
+all we need to do is plot the corresponding hclust object
+* let's explore what kind of influence the linkage criteria can have
+on the dendogram
+
+
+#Plotting the Dendogram
+
+**plot(hc_players)**
+
+
+Comparing average, single & complete linkage
+
+You are now ready to analyze the clustering results of the lineup dataset 
+using the dendrogram plot. This will give you a new perspective on the 
+effect the decision of the linkage method has on your resulting cluster 
+analysis.
+
+Plot the three dendrograms side by side and review the changes
+
+```{r}
+# Prepare the Distance Matrix
+dist_players <- dist(lineup)
+
+# Generate hclust for complete, single & average linkage methods
+hc_complete <- hclust(dist_players, method = "complete")
+hc_single <- hclust(dist_players, method = "single")
+hc_average <- hclust(dist_players, method =  "average")
+
+# Plot & Label the 3 Dendrograms Side-by-Side
+# Hint: To see these Side-by-Side run the 4 lines together as one command
+par(mfrow = c(1,3))
+plot(hc_complete, main = 'Complete Linkage')
+plot(hc_single, main = 'Single Linkage')
+plot(hc_average, main = 'Average Linkage')
+```
+
+
+Excellent! Did you notice how the trees all look different? 
+In the coming exercises you will see how visualizing this structure can be 
+helpful for building clusters.
+
+# Height of the tree
+
+An advantage of working with a clustering method like hierarchical 
+clustering is that you can describe the relationships between your 
+observations based on both the distance metric and the linkage metric 
+selected (the combination of which defines the height of the tree).
+
+
+Based on the code below what can you concretely say about the height 
+of a branch in the resulting dendrogram?
+
+
+```{r}
+dist_players <- dist(lineup, method = 'euclidean')
+hc_players <- hclust(dist_players, method = 'single')
+plot(hc_players)
+```
+
+All of the observations linked by this branch must have:
+
+Possible Answers
+a maximum euclidean distance amongst each other less than or equal 
+to the height of the branch.
+
+a minimum Jaccard distance amongst each other less than or equal 
+to the height of the branch.
+
+a minimum euclidean distance amongst each other less than or equal 
+to the height of the branch.
+(answer)
+
+Exactly! Based on this code we can concretely say that for a given branch on 
+a tree all members that are a part of that branch must have a minimum 
+euclidean distance amongst one another equal to or less than the height of 
+that branch. 
+
+In the next section you will see how this description can be put into action 
+to generate clusters that can be described using the same logic.
+
+
+# Cutting the tree
+
+* we have learned how to plot and interpret the dendogram
+* now let's learn how to leverage this visualization to build identifier
+clusters and highlight some of their key characteristics
+* to establish the relationship of members based on height of tree
+let's cut the tree at any height
+* this means we remove all links above this cut point and we create
+our clusters below
+* using this height cut off we can already ascribe characteristics 
+through the clusters that exists below the cut height 
+* that no members will have euclidean distance greater than the cut
+height  
+* this statement is a function of our choice of height, distance matrix
+and linkage criteria
+* this information can be very valuable as our data gets more features
+and becomes harder to plot using only two dimensions
+
+# Coloring the Dendogram - Height
+
+* we can visualize the clusters that form at any given height
+by leveraging the dendextend library to colour our dendogram plot
+* to do so we must first convert our hclust object into a dendogram
+object by using the function as.dendogram 
+* the next step is to use the color_branches() to colour the branches
+based our selected criteria which is cut height 
+
+```{r}
+#install.packages("dendextend")
+library(dendextend)
+
+dend_players = as.dendrogram(hc_players)
+dend_colored = color_branches(dend_players, h = 15)
+plot(dend_colored)
+
+
+dend_colored = color_branches(dend_players, h = 10)
+plot(dend_colored)
+
+# If you want two clusters then use k argument
+dend_colored = color_branches(dend_players, k = 2)
+plot(dend_colored)
+
+# cutree() using height
+cluster_assignments = cutree(hc_players, h =15)
+
+cluster_assignments
+# [1] 1 1 2 3 4 4 5 2 6 3 4 6
+
+players_clustered = mutate(lineup_k2_complete, 
+                           cluster = cluster_assignments)
+
+players_clustered
+```
+
+
+# Clusters based on height
+
+In previous exercises you have grouped your observations into 
+clusters using a pre-defined number of clusters (k). In this exercise 
+you will leverage the visual representation of the dendrogram in order 
+to group your observations into clusters using a maximum height (h), 
+below which clusters form.
+
+You will work the color_branches() function from the dendextend 
+library in order to visually inspect the clusters that form at any height along the dendrogram.
+
+The hc_players has been carried over from your previous work with 
+the soccer line-up data.
+
+
+Create a dendrogram object dend_players from your hclust result 
+using the function as.dendrogram()
+
+Plot the dendrogram
+
+Using the color_branches() function create & plot a new 
+dendrogram with clusters colored by a cut height of 20
+
+Repeat the above step with a height of 40
+
+```{r}
+#install.packages("dendextend")
+library(dendextend)
+
+dist_players <- dist(lineup, method = 'euclidean')
+hc_players <- hclust(dist_players, method = "complete")
+
+# Create a dendrogram object from the hclust variable
+dend_players <- as.dendrogram(hc_players)
+
+# Plot the dendrogram
+plot(dend_players)
+
+# Color branches by cluster formed from the cut at a height of 20 & plot
+dend_20 <- color_branches(dend_players, h = 20)
+
+# Plot the dendrogram with clusters colored below height 20
+plot(dend_20)
+
+# Color branches by cluster formed from the cut at a height of 40 & plot
+dend_40 <- color_branches(dend_players, h = 40)
+
+# Plot the dendrogram with clusters colored below height 40
+plot(dend_40)
+```
+
+Conclusion:
+Excellent! Can you see that the height that you use to cut the tree greatly 
+influences the number of clusters and their size? Consider taking a moment 
+to play with other values of height before continuing.
+
+
+# Exploring the branches cut from the tree
+
+The cutree() function you used in exercises 5 & 6 can also be used to cut a 
+tree at a given height by using the h parameter. Take a moment to explore the 
+clusters you have generated from the previous exercises based on the heights 
+20 & 40.
+
+Build the cluster assignment vector clusters_h20 using cutree() with a h = 20
+
+Append the cluster assignments as a column cluster to the lineup data frame and 
+save the results to a new dataframe called lineup_h20_complete
+
+Repeat the above two steps for a height of 40, generating the variables 
+clusters_h40 and lineup_h40_complete
+
+Use ggplot2 to create a scatter plot, colored by the cluster assignment for 
+both heights
+
+```{r}
+dist_players <- dist(lineup, method = 'euclidean')
+hc_players <- hclust(dist_players, method = "complete")
+
+# Calculate the assignment vector with a h of 20
+clusters_h20 <- cutree(hc_players, h = 20)
+
+# Create a new dataframe storing these results
+lineup_h20_complete <- mutate(lineup, cluster = clusters_h20)
+
+# Calculate the assignment vector with a h of 40
+clusters_h40 <- cutree(hc_players, h = 40)
+
+# Create a new dataframe storing these results
+lineup_h40_complete <- mutate(lineup, cluster = clusters_h40)
+
+# Plot the positions of the players and color them using their cluster for height = 20
+ggplot(lineup_h20_complete, aes(x = x, y = y, color = factor(cluster))) +
+  geom_point()
+
+# Plot positions of the players and color them using their cluster for ht = 40
+ggplot(lineup_h40_complete, aes(x = x, y = y, color = factor(cluster))) +
+  geom_point()
+
+```
+
+Great job! You can now explore your clusters using both k and h parameters.
+
+
+
+# What do we know about our clusters?
+
+Based on the code below, what can you concretely say about the relationships of the members within each cluster?
+
+```{r}
+dist_players <- dist(lineup, method = 'euclidean')
+hc_players <- hclust(dist_players, method = 'complete')
+clusters <- cutree(hc_players, h = 40)
+```
+
+Every member belonging to a cluster must have:
+
+Possible Answers
+a maximum euclidean distance to all other members of its cluster that is less 
+than 40.
+(answer)
+
+a maximum euclidean distance to all other members of its cluster that is 
+greater than or equal to 40.
+
+a average euclidean distance to all other members of its cluster that is 
+less than 40.
+
+Correct! The height of any branch is determined by the linkage and distance 
+decisions (in this case complete linkage and euclidean distance). 
+While the members of the clusters that form below a desired height have a 
+maximum linkage+distance amongst themselves that - han the desired height.
+
+
+# Making sense of the clusters
+
+* let's cluster the Wholesale dataset
+* 45 records for customer spending from a wholesale distributer
+* for each customer record there are three features
+* spending on milk, grocery and frozen food 
+
+# Exploring More than 2 dimensions
+
+( Plot 2 dimensions at a time Vs Visualize using PCA 
+and summary of  statistics by feature)
+
+* here we have three features unlike the soccer players
+dataset with only two features x,y
+* so we can't use two dimensional plots to explore these features
+* there are several approaches to overcome this
+* you can multiple plots with feature pairs and use colours
+to show difference in clusters
+* this can be helpful but captures only one angle of complex
+interactions at a time
+* also this approach can get quickly out of hand if the number of features expands
+* alternatively you can use dimentionality reduction methods such as 
+PCA principle component analysis
+* in order to plot your multi-dimensional data onto two dimensions
+* and colour the points using the cluster assignments
+* this can be helpful to see if your observations clustered well
+and the clusters are well separated
+* however, this type of analysis is difficult to interpret and wouldn't
+shed light on the characteristics of the cluster
+* and finally you can simple explore the summary of the distribution statistics
+such as mean median of each feature within the clusters
+* by comparing the summary statistics you can build a narrative about what
+makes the observations in a cluster similar to each other while different than
+the observations in other clusters
+
+Use Case - Market Segmentation
+
+* Segment the customers based on their behaviour
+* once the segments are classified we can explore their
+common characteristics to gain insight into our customer base
+and design value driven opportunities using this data
+
+
+# Segment wholesale customers
+
+You're now ready to use hierarchical clustering to perform market segmentation 
+(i.e. use consumer characteristics to group them into subgroups).
+
+In this exercise you are provided with the amount spent by 45 different clients of a 
+wholesale distributor for the food categories of Milk, Grocery & Frozen. This is stored in 
+the dataframe customers_spend. Assign these clients into meaningful clusters.
+
+Note: For this exercise you can assume that because the data is all of the same type (amount spent) 
+and you will not need to scale it.
+
+
+```{r}
+customers_spend = read_rds("C:/shobha/R/DataCamp/dataFiles/RDS-files/ws_customers.rds")
+
+glimpse(customers_spend)
+
+head(customers_spend)
+```
+
+Calculate the euclidean distance between the customers and store this in dist_customers
+
+```{r}
+# get the distance matrix
+dist_customers = dist( customers_spend, method = "euclidean")
+
+
+#Run hierarchical clustering using complete linkage and store in hc_customers
+hc_customers = hclust(dist_customers, method = "complete")
+
+
+#Plot dendogram
+plot(hc_customers)
+```
+
+
+Create a cluster assignment vector using a height of 15,000 and store it as clust_customers
+
+```{r}
+clust_customers = cutree(hc_customers, h=15000)
+```
+
+Generate a new dataframe segment_customers by appending the cluster 
+assignment as the column cluster to the original customers_spend 
+dataframe
+
+
+```{r}
+library(dplyr)
+
+segment_customers = customers_spend %>%
+  mutate(cluster = clust_customers) 
+
+glimpse(segment_customers)
+
+head(segment_customers)
+```
+
+Excellent! Let's move on to the next exercise and explore these clusters.
+
+# Explore wholesale customer clusters
+
+Continuing your work on the wholesale dataset you are now ready to 
+analyze the characteristics of these clusters.
+
+Since you are working with more than 2 dimensions it would be 
+challenging to visualize a scatter plot of the clusters, instead you 
+will rely on summary statistics to explore these clusters. 
+In this exercise you will analyze the mean amount spent in each cluster 
+for all three categories.
+
+
+```{r}
+#Calculate the size of each cluster using count().
+count(segment_customers, cluster)
+```
+
+Color & plot the dendrogram using the height of 15,000.
+
+For this we have to convert the hclust object into dendogram object and user the functions in dendextend library to colour the branches at the cut height
+
+
+```{r}
+dend_customers = as.dendrogram(hc_customers)
+
+dend_colored = color_branches(dend_customers, h = 15000)
+
+# Plot the colored dendrogram
+plot(dend_colored)
+```
+
+Calculate the average spending for each category within each cluster 
+using the summarise_all() function.
+
+```{r}
+names(segment_customers)
+
+segment_customers %>% group_by(cluster) %>%
+  summarise_all(funs(mean(.)))
+```
+
+
+Great work! You've gathered a bunch of information about these clusters, 
+now let's see what can be interpreted from them.
+
+```{r}
+segment_customers %>% group_by(cluster) %>%
+  summarise_all(funs(mean(.), cluster_size = n()))
+```
+
+What observations can we make about our segments based on their 
+average spending in each category?
+
+Possible Answers
+Customers in cluster 1 spent more money on Milk than any other cluster.
+
+Customers in cluster 3 spent more money on Grocery than any other cluster.
+
+Customers in cluster 4 spent more money on Frozen goods than any other 
+cluster.
+
+The majority of customers fell into cluster 2 and did not show any 
+excessive spending in any category.
+
+All of the above. (answer)
+
+All 4 statements are reasonable, but whether they are meaningful 
+depends heavily on the business context of the clustering.
+You have finished the chapter 'Hierarchical clustering'!
+
+
+# Part 2 Introduction to K-means 
+
+In the last chapter we learned hierarchical cluster
+
+* here we will learn another populare clustering method called K-means
+* k is the number of clusters which is known or it can be deduced
+empirically which we will discuss later
+* since we know soccer is played with two teams, we can use K as two, as 
+the desired number of clusters
+* once K is established the algorithm can proceed
+* now we assign the K-centroids for each K
+* for each observation the distance is calculated as the distance between
+each cetroid and the observation
+* distance is limited to euclidean only
+* initially observations are assigned the centroid they are closest
+to, so now the observations have an initial assignment of one of the
+two clusters
+* then next step involves moving the centroids to the center of
+the new clusters
+* again the distance of every observation is calculated to each
+centroid and they are reassigned based on which centroid they are 
+closest to
+* this process continues until the centroids stabilize and the observations
+are no longer reassigned
+* this is the fundamental algorithm of K-means clustering
+
+kmeans()
+
+* to generate the k-means model in R we use the function
+with the same name
+
+
+# K-means on a soccer field
+
+In the previous chapter you used the lineup dataset to learn about 
+hierarchical clustering, in this chapter you will use the same data 
+to learn about k-means clustering. As a reminder, the lineup dataframe 
+contains the positions of 12 players at the start of a 6v6 soccer match.
+
+Just like before, you know that this match has two teams on the field 
+so you can perform a k-means analysis using k = 2 in order to determine 
+which player belongs to which team.
+
+Note that in the kmeans() function k is specified using the centers 
+parameter.
+
+
+```{r}
+lineup
+```
+
+Build a k-means model called model_km2 for the lineup data using 
+the kmeans() function with centers = 2
+
+
+```{r}
+model_km2 <- kmeans(lineup, centers = 2)
+model_km2
+```
+
+
+```{r}
+# Assigned clusters
+model_km2$centers
+```
+
+Extract the vector of cluster assignments from the model 
+model_km2$cluster and store this in the variable clust_km2
+
+```{r}
+clust_km2 <- model_km2$cluster
+clust_km2
+```
+
+Append the cluster assignments as a column cluster to the lineup data 
+frame and save the results to a new dataframe called lineup_km2
+
+```{r}
+lineup_km2 <- mutate(lineup, cluster = clust_km2)
+
+lineup_km2$clustered
+```
+
+Use ggplot to plot the positions of each player on the field and color 
+them by their cluster
+
+```{r}
+ggplot(lineup_km2, aes(x = x, y = y, color = factor(cluster))) +
+  geom_point()
+```
+
+Well done! Knowing the desired number of clusters ahead of time can be 
+very helpful when performing a k-means analysis. In the next section 
+we will see what happens when we use an incorrect value of k.
+
+# K-means on a soccer field (part 2)
+
+In the previous exercise you successfully used the k-means algorithm 
+to cluster the two teams from the lineup data frame. This time, let's 
+explore what happens when you use a k of 3.
+
+You will see that the algorithm will still run, but does it actually 
+make sense in this context..
+
+Build a k-means model called model_km3 for the lineup data using the 
+kmeans() function with centers = 3
+
+Extract the vector of cluster assignments from the model 
+model_km3$cluster and store this in the variable clust_km3
+
+Append the cluster assignments as a column cluster to the lineup data 
+frame and save the results to a new dataframe called lineup_km3
+
+Use ggplot to plot the positions of each player on the field and color 
+them by their cluster
+
+
+```{r}
+# Build a kmeans model
+model_km3 <- kmeans(lineup,centers = 3)
+
+# Extract the cluster assignment vector from the kmeans model
+clust_km3 <- model_km3$cluster
+
+# Create a new dataframe appending the cluster assignment
+lineup_km3 <- mutate(lineup, cluster = clust_km3)
+
+# Plot the positions of the players and color them using their cluster
+ggplot(lineup_km3, aes(x = x, y = y, color = factor(cluster))) +
+  geom_point()
+```
+
+
+Does this result make sense? Remember we only have 2 teams on the field. 
+It's very important to remember that k-means will run with any k that 
+is more than 2 and less than your total observations, but it doesn't 
+always mean the results will be meaningful.
+
+
+Evaluating different value of K by eye
+
+* what happens when you don't know what the right value
+of k is?
+* you will learn two methods to estimate k empirically from the data
+{ adverb
+by means of observation or experience rather than theory or pure logic.
+'empirically tested methods' }
+* in this exercise you will build an intuition for one of these methods
+the elbow method
+
+Total Within-Cluster Sum of Squares: k = 1
+
+Total Within-Cluster Sum of Squares: k = 2
+
+and so on till k is less than total number of observations
+
+# Elbow (Scree) Plot
+
+* you will see that as the  number of k increases the total
+sum of squares decreases 
+* plot the values of k on x-axis and totals on y
+* you will notice that as the k increases the total ss decreases
+* this is absolutely natural and expected
+* just think about it
+* the more you segment your data the more points you group together
+into smaller and more compact clusters until you obtain clusters
+with only one or two members
+* what we're looking for is a point where the curve begins to 
+flatten out
+* affectionately referred to as the elbow
+* here we can see that there is a percipitate drop going over
+from k equal to 1 to 2
+* and then a level in arc in k = 2 and 3 and onward
+* as such we can claim that elbow in this case occured when k is 2
+* and we consider usin this as the estimated value of k
+
+Generating the Elbow Plot
+
+* first piece is to calculate the total with-in cluster sum of squares
+
+```{r}
+model <- kmeans(x = lineup, centers = 2)
+
+model$tot.withinss
+```
+
+* to create the elbow plot we need total ss for different values of k
+* to do this we use map_dbl function in purr package
+* repeat the above code for different values of k and store the result in a vector
+
+
+```{r}
+library(purrr)
+
+# Use map_dbl to run many models with varying value of k (centers)
+# map applies the function to each element of input
+tot_withinss = map_dbl(1:10, function(k){
+  model = kmeans(lineup, centers = k)
+  model$tot.withinss
+})
+
+elbow_df = data.frame(
+  k = 1:10,
+  tot_withinss = tot_withinss  
+)
+
+ggplot(elbow_df, aes(x = k, y = tot_withinss)) +
+  geom_line() +
+  scale_x_continuous(breaks = 1:10)
+```
+
+# Silhouette analysis: Observation level performance
+
+* the other method for estimating number of centers or k for Kmeans cluster analysis
+* this approach provides a different lens through which you can understand the results of your cluster analysis
+* it helps to determine how well each of the observations fits into their corresponding clusters
+* and be leveraged as an additional method for estimating the value of K
+
+## Silhouette Width
+
+* Silhouette method involves calculating a measure called Silhouette width for every observation 
+* it consists of two parts
+* the Within Cluster Distance: C(i)
+( the avg euclidean distance from that observation to every other observation within the same cluster)
+* and the Closest Neighbour Distance: N(i)
+( this is the avg distance from that observation to the points in the closest neighbouring clusters, the smallest avg distance is used as the closest neighbour distance)
+* using the values of C(i) and N(i) the Silhouette Width for each observation is calculated as below:
+
+if C(i) < N(i), Si = 1 - C(i)/N(i)
+
+if C(i) = N(i), Si = 0
+
+if C(i) > N(i), Si = N(i)/C(i) - 1
+
+
+## Intuitive interpretation of this value:
+
+* a value close to 1 indicates this observation is well matched to it curretn cluster
+
+* a value of 0 indicates it on the border of two clusters and can belong to either one
+
+* a value close to -1 indicates the observation may be a better fit with the neighbouring cluster
+
+## Calculating S(i)
+
+* we can leverage the pam function from cluster library
+to calcualte the Silhouette width
+
+```{r}
+library(cluster)
+pam_k3 = pam(lineup, k =3)
+
+pam_k3$silinfo$widths
+```
+
+
+## Silhouette Plot
+
+* or they can be visualized using the silhoutte plot
+
+```{r}
+sil_plot = silhouette(pam_k3)
+plot(sil_plot)
+```
+
+
+* in this plot the bars represent the silhouette width for each observation
+* at the bottom of the graph is the average silhouette width of all observations
+* which can be retrieved from the model object as below
+
+## Average Silhouette Width
+
+```{r}
+pam_k3$silinfo$avg.width
+```
+
+
+* it can be interpreted in a manner similar to the silhouette width of an observations
+
+1: Well matched to each cluster
+0: On border between clusters
+-1: Poorly matched to each cluster
+
+
+* in this case the average is well above zero suggesting that most observations are well matched to their assigned clusters
+
+
+## Highest Average Silhouette Width 
+
+{that is for different values of clusters}
+
+
+```{r}
+library(purrr)
+
+sil_width = map_dbl(2:10, function(k) {
+model = pam(x = lineup, k = k)
+model$silinfo$avg.width
+})
+
+sil_df = data.frame(
+k = 2:10, 
+sil_width = sil_width)
+
+sil_df
+```
+
+Now we can use ggplot to see the realtionship between k and average silhouette width
+
+Choosing K Using Average Silhouette Width
+
+
+```{r}
+ggplot(sil_df, aes(x = k, y = sil_width)) +
+  geom_line() +
+  scale_x_continuous(breaks = 2:10)
+
+```
+
+Not surprisingly the highest avg silhouette width is for k equal to 2 and would be the recommended value based on this method.
+
+Now that you know how Sihlouette analysis works let's try it out
+
+
+
+# Many K's many models
+
+While the lineup dataset clearly has a known value of k, often times the optimal number of clusters isn't known and must be estimated.
+
+In this exercise you will leverage map_dbl() from the purrr library to run k-means using values of k ranging from 1 to 10 and extract the total within-cluster sum of squares metric from each one. This will be the first step towards visualizing the elbow plot.
+
+
+```{r}
+library(purrr)
+
+# Use map_dbl to run many models with varying value of k (centers)
+tot_withinss <- map_dbl(1:10,  function(k){
+  model <- kmeans(x = lineup, centers = k)
+  model$tot.withinss
+})
+
+# Generate a data frame containing both k and tot_withinss
+elbow_df <- data.frame(
+  k = 1:10 ,
+  tot_withinss = tot_withinss
+)
+
+```
+
+# Elbow (Scree) plot example
+
+In the previous exercises you have calculated the total within-cluster 
+sum of squares for values of k ranging from 1 to 10. You can visualize 
+this relationship using a line plot to create what is known as an elbow 
+plot (or scree plot).
+
+When looking at an elbow plot you want to see a sharp decline from 
+one k to another followed by a more gradual decrease in slope. 
+The last value of k before the slope of the plot levels off suggests 
+a 'good' value of k.
+
+
+Continuing your work from the previous exercise, use the values in 
+elbow_df to plot a line plot showing the relationship between k and 
+total within-cluster sum of squares
+
+```{r}
+# Plot the elbow plot
+ggplot(elbow_df, aes(x = k, y = tot_withinss)) +
+  geom_line() +
+  scale_x_continuous(breaks = 1:10)
+```
+
+Fantastic! You have learned how to create and visualize elbow plots 
+as a tool for finding a "good" value of k. In the next section you 
+will add another tool to your arsenal for finding k.
+
+
+## Interpreting the elbow plot
+
+Based on the elbow plot you generated in the previous exercise for the 
+lineup data:
+
+Possible Answers
+Based on this plot, the k to choose is 2; the elbow occurs there.
+(answer)
+
+The k to choose is 5; this is where the trend levels off.
+
+Any value of k is valid; this plot does not clearly identify an elbow.
+
+None of the above.
+
+
+That is correct, you can see that there is a sharp change in the slope 
+of this line that makes an \"elbow\" shape. Furthermore, this is 
+supported by the prior knowledge that there are two teams in this 
+data and a k of 2 is desired.
+
+
+
+# Silhouette analysis example
+
+Silhouette analysis allows you to calculate how similar each observations 
+is with the cluster it is assigned relative to other clusters. This metric 
+(silhouette width) ranges from -1 to 1 for each observation in your data and 
+can be interpreted as follows:
+
+* Values close to 1 suggest that the observation is well matched to the assigned 
+cluster
+* Values close to 0 suggest that the observation is borderline matched between 
+two clusters
+* Values close to -1 suggest that the observations may be assigned to the wrong 
+cluster
+
+In this exercise you will leverage the pam() and the silhouette() functions 
+from the cluster library to perform silhouette analysis to compare the results 
+of models with a k of 2 and a k of 3. You'll continue working with the lineup 
+dataset.
+
+Pay close attention to the silhouette plot, does each observation clearly 
+belong to its assigned cluster for k = 3?
+
+
+## Making sense of the K-means clusters
+
+* now lets apply the k-means technique to the the Wholesale dataset  
+* you have learned a lot since you last looked at this data
+* so let's have a quick refresher
+* this exercise is for clustering the dataset for wholesale distributer
+* this use of clustering is also known as market segmentation
+* the wholesale data consists of 45 observations of client purchases of milk grocery forzen food stored in datset customer_spend
+* we did segmentation using heirarchical clustering earlier to segment the customers into four clusters using height that seemed appropriate based on the structure of the tree
+* you then characterised these customer segments by calculating their average spending in each category
+* you then learned that segments/clusters 1,3,4 consists of around five observations each and their members collectively spend more on one category relative to the others
+* in a real world finding like this would be useful to provide a more customised advertising or other targeting for these groups based on their spending habits
+* do you think the result would be the same if you used a different method for clustering
+* let's find out
+* in the following exercises you will leverage the K-means tools you have learned in this chapter to
+* first estimate the 'best' k using average sihouette width
+* then you will use this k to run the k-means model
+* finally you will characterise these k clusters by calculating their average spending in each category
+
+* and as you progress compare your finding with the hierarchical clustering results
+* I encourage you to see if the results are different and speculate as to why that may be the case
+* most importantly you should remember that both these clustering methods are descriptive and not prescriptive
+{
+  Prescriptive is dictating to someone what they must do
+  whereas descriptive is describing what someone does.
+  In terms of language, the prescriptivists are the stylists
+  and grammar Nazis, and the descriptivists linguists.
+}
+
+* In other words they provide different lenses with which you 
+can understand your underlying data and the choice of what to use
+* and how to correctly use it
+* it will be highly dependent on the question at hand as well as
+understanding of the underlying subject matter
+* so let's cluster
+
+Generate a k-means model pam_k2 using pam() with k = 2 on the lineup data.
+
+Plot the silhouette analysis using plot(silhouette(model)).
+
+Repeat the first two steps for k = 3, saving the model as pam_k3.
+
+Make sure to review the differences between the plots before proceeding 
+(especially observation 3) for pam_k3.
+
+
+```{r}
+head(lineup)
+str(lineup)
+
+```
+
+
+```{r}
+library(cluster)
+library(purrr)
+
+# Generate a k-means model using the pam() function with a k = 2
+pam_k2 <- pam(lineup, k = 2)
+
+# Plot the silhouette visual for the pam_k2 model
+plot(silhouette(pam_k2))
+
+# Generate a k-means model using the pam() function with a k = 3
+pam_k3 <- pam(lineup, k = 3)
+
+# Plot the silhouette visual for the pam_k3 model
+plot(silhouette(pam_k3))
+```
+
+Conclusion:
+Great work! Did you notice that for k = 2, no observation has a silhouette 
+width close to 0? What about the fact that for k = 3, observation 3 is close 
+to 0 and is negative? This suggests that k = 3 is not the right number of 
+clusters.
+
+
+
+# Revisiting wholesale data: 'Best' k
+
+At the end of Chapter 2 you explored wholesale distributor data customers_spend using hierarchical clustering. This time you will analyze this data using the k-means clustering tools covered in this chapter.
+
+The first step will be to determine the 'best' value of k using average silhouette width.
+
+A refresher about the data: it contains records of the amount spent by 45 different clients of a wholesale distributor for the food categories of Milk, Grocery & Frozen. This is stored in the dataframe customers_spend. For this exercise you can assume that because the data is all of the same type (amount spent) and you will not need to scale it.
+
+Use map_dbl() to run pam() using the customers_spend data for k values 
+ranging from 2 to 10 and extract the average silhouette width value from 
+each model: model$silinfo$avg.width Store the resulting vector as sil_width
+
+Build a new dataframe sil_df containing the values of k and the vector of 
+average silhouette widths
+
+Use the values in sil_df to plot a line plot showing the relationship 
+between k and average silhouette width
+
+```{r}
+names(customers_spend)
+
+head(customers_spend)
+
+dim(customers_spend)
+
+# Use map_dbl to run many models with varying #value of k
+
+sil_width = map_dbl(2:10, function(k) {
+  model = pam(x = customers_spend, k = k)
+  model$silinfo$avg.width
+})
+
+class(sil_width)
+
+head(sil_width)
+
+length(sil_width)
+
+# Generate a data frame containing both k and sil_width
+sil_df = data.frame( k = 2:10, sil_width = sil_width)
+
+# Plot the relationship between k and sil-width
+ggplot(sil_df, aes(x = k, y = sil_width)) +
+  geom_line() +
+  scale_x_continuous(breaks = 1:10)
+
+
+```
+
+
+You're doing great! From the plot I hope you noticed that k = 2 has the highest average sillhouette width and is the "best" value of k we will move forward with.
+
+
+
+## Revisiting wholesale data: Exploration
+
+From the previous analysis you have found that k = 2 has the highest 
+average silhouette width. In this exercise you will continue to 
+analyze the wholesale customer data by building and exploring a 
+kmeans model with 2 clusters.
+
+
+Build a k-means model called model_customers for the customers_spend 
+data using the kmeans() function with centers = 2.
+
+Extract the vector of cluster assignments from the model 
+model_customers$cluster and store this in the variable clust_customers.
+
+Append the cluster assignments as a column cluster to the 
+customers_spend data frame and save the results to a new dataframe 
+called segment_customers.
+
+
+Calculate the size of each cluster using count().
+
+```{r}
+model_customers = kmeans(customers_spend, centers = 2)
+
+model_customers
+```
+
+
+```{r}
+# Extract the vector of cluster assignments from the model
+clust_customers = model_customers$cluster
+
+
+# Build the segment_customers dataframe
+segment_customers = mutate(customers_spend, 
+                           cluster = clust_customers)
+
+
+# Calculate the size of each cluster
+count(segment_customers, cluster)
+
+# Calculate the mean for each category
+segment_customers %>%
+  group_by(cluster) %>%
+  summarise_all(funs(mean(.)))
+
+```
+
+Well done! It seems that in this case cluster 1 consists of individuals 
+who proportionally spend more on Milk and Grocery while cluster 2 
+customers spent more on Frozen food. Did you notice that when you 
+explored this data using hierarchical clustering, the method resulted 
+in 4 clusters while using k-means got you 2? Both of these results are 
+valid, but which one is appropriate for this would require more subject 
+matter expertise. Before you proceed with the next chapter, remember 
+that: Generating clusters is a science, but interpreting them is an art.
+
+You have finished the chapter 'K-means clustering'!
+
+# Occupational wage data
+
+* there are many types of problems that are suitable for cluster 
+analysis
+* in the last two chapters you encountered two common types of 
+such problems
+* with soccer line up problem you worked on clustering based on
+spacial data
+* with wholesale spending data you segmented customers into clusters
+* in this chapter you will encounter a third type of problem
+* you will leverage the tools learned thus far to explore data
+that changes with time
+* or time-series data
+* you will work with data that consists of average income for 
+22 occupations in US, collected from 2001 to 2016
+* this corresponds to matrix of 22 occupation observations
+* and features of these observations is the measurements of
+the average income for these years 
+( 15 features for years from 2001 to 2016)
+* this data is stored in data matrix called oes
+* we can see the trend of each occupation wrt time in this plot
+* so the question to ask is which occupations cluster together
+* or are there any distinct trends of these occupations that we 
+can observe
+
+# Next Steps: Hierarchical Clustering
+
+* first determine if any pre-processing steps are needed
+for this data, that is scaling or imputation
+* then you will use the post-processed data to create a distance
+matrix with an appropriate distance metric
+* then you will use the distance matrix to build a dendogram
+in a chosen linkage criteria
+* you will then use what you have learned in this dendogram to select
+an appropriate height and extract the cluster assignments
+* finally and most importantly you will explore the resulting 
+clusters to determine whether they make sense and what conclusions
+can be made from them
+
+
+# Initial exploration of the data
+
+You are presented with data from the Occupational Employment Statistics 
+(OES) program which produces employment and wage estimates annually. 
+This data contains the yearly average income from 2001 to 2016 for 
+22 occupation groups. You would like to use this data to identify 
+clusters of occupations that maintained similar income trends.
+
+The data is stored in your environment as the data.matrix oes.
+
+Before you begin to cluster this data you should determine whether 
+any pre-processing steps (such as scaling and imputation) are necessary.
+
+```{r}
+oes = read_rds("C:/shobha/R/DataCamp/dataFiles/RDS-files/oes.rds")
+
+class(oes)
+
+dim(oes)
+
+head(oes)
+```
+
+
+
+Leverage the functions head() and summary() to explore the oes data 
+in order to determine which of the pre-processing steps below are 
+necessary:
+
+Possible Answers
+NA values exist in the data, hence the values must be imputed or 
+the observations with NAs excluded.
+
+
+The variables within this data are not comparable to one another and 
+should be scaled.
+
+Categorical variables exist within this data and should be appropriately 
+dummified.
+
+All three pre-processing steps above are necessary for this data.
+
+None of these pre-processing steps are necessary for this data.
+(answer)
+
+Review the output of summary(oes), this function provides the number 
+of NA's in a column when they exist.
+
+```{r}
+summary(oes)
+```
+
+
+Correct, there are no missing values, no categorical and the features are on the same scale. Now you're ready to cluster this data!
+
+# Hierarchical clustering: Occupation trees
+
+In the previous exercise you have learned that the oes data is ready 
+for hierarchical clustering without any preprocessing steps necessary. 
+In this exercise you will take the necessary steps to build a 
+dendrogram of occupations based on their yearly average salaries and 
+propose clusters using a height of 100,000.
+
+Calculate the euclidean distance between the occupations and store 
+this in dist_oes
+
+Run hierarchical clustering using average linkage and store in hc_oes
+
+Create a denrogram object dend_oes from your hclust result using the 
+function as.dendrogram()
+
+Plot the dendrogram
+
+Using the color_branches() function create & plot a new dendrogram 
+with clusters colored by a cut height of 100,000
+
+```{r}
+# Calculate euclidean distance between the occupations
+dist_oes <- dist(oes, method = "euclidean")
+
+# Generate an average linkage analysis 
+hc_oes <- hclust(dist_oes, method = "average")
+
+# Create a dendrogram object from the hclust variable
+dend_oes <- as.dendrogram(hc_oes)
+
+# Plot the dendrogram
+plot(dend_oes)
+
+# Color branches by cluster formed from the cut at a height of 100000
+dend_colored <- color_branches(dend_oes, h = 100000)
+
+# Plot the colored dendrogram
+plot(dend_colored)
+```
+
+
+Conclusion:
+Well done! Based on the dendrogram it may be reasonable to start with 
+the three clusters formed at a height of 100,000. The members of these 
+clusters appear to be tightly grouped but different from one another. 
+Let's continue this exploration.
+
+
+
+# Hierarchical clustering: Preparing for exploration
+
+You have now created a potential clustering for the oes data, before 
+you can explore these clusters with ggplot2 you will need to process 
+the oes data matrix into a tidy data frame with each occupation 
+assigned its cluster.
+
+Create the df_oes data frame from the oes data.matrix, making sure to 
+store the rowname as a column (use rownames_to_column() from the tibble 
+library)
+
+Build the cluster assignment vector cut_oes using cutree() with a 
+h = 100,000
+
+Append the cluster assignments as a column cluster to the df_oes 
+data frame and save the results to a new dataframe called clust_oes
+
+Use the gather() function from the tidyr() library to reshape the data 
+into a format amenable for ggplot2 analysis and save the tidied data 
+frame as gather_oes
+
+Use the number matrix to build the distance matrix and from it the hclust matrix
+
+```{r}
+dist_oes <- dist(oes, method = 'euclidean')
+hc_oes <- hclust(dist_oes, method = 'average')
+
+library(tibble)
+library(tidyr)
+
+df_oes = as.data.frame(oes)
+str(df_oes)
+
+names(df_oes)
+# make observations i.e. occupation as column
+df_oes = rownames_to_column(df_oes, var = "occupation")
+names(df_oes)
+
+# Create a cluster assignment vector at h = 100,000
+cut_oes <- cutree(hc_oes, h = 100000)
+
+class(cut_oes)
+#[1] "integer"
+
+length(cut_oes)
+#[1] 22
+
+cut_oes
+
+cut_oes[1]
+
+
+# Generate the segmented the oes dataframe
+clust_oes <- mutate(df_oes, cluster = cut_oes)
+
+names(clust_oes)
+
+head(clust_oes)
+
+dim(clust_oes)
+```
+
+Create a tidy data frame by gathering the year and values into two columns
+
+gather all the years into one column 'year' and their vlaues as
+mean_salary
+
+```{r}
+gathered_oes <- gather(data = clust_oes, 
+                       key = year, 
+                       value = mean_salary, 
+                       -occupation, -cluster)
+names(gathered_oes)
+
+dim(gathered_oes)
+
+# number of rows
+(17-2)*22
+```
+
+15 columns are collapsed into two, and remaining two columns that were not collapsed therefore number of columns is 4 
+
+Great work! You now have the dataframes necessary to explore the 
+results of this clustering
+
+
+
+# Hierarchical clustering: Plotting occupational clusters
+
+You have succesfully created all the parts necessary to explore 
+the results of this hierarchical clustering work. In this exercise 
+you will leverage the named assignment vector cut_oes and the tidy 
+data frame gathered_oes to analyze the resulting clusters.
+
+View the assignments of each occupation to their clustering by sorting the cut_oes vector using sort()
+
+```{r}
+sort(cut_oes)
+```
+
+Use ggplot2 to plot each occupation's average income by year and 
+color the lines by the occupation's assigned cluster.
+
+
+```{r}
+head(gathered_oes)
+
+ggplot(gathered_oes, aes(x = year, 
+                         y = mean_salary, 
+                         colour = factor(cluster))) +
+geom_line(aes(group = occupation))
+
+```
+
+The ggplot shows two lines corresponding to cluster 1 have the
+most rapid growth. Let's see which occupations are in cluster 1
+
+
+```{r}
+gathered_oes %>% 
+  filter(cluster == 1) %>% 
+  select(occupation) %>%
+  unique()
+```
+
+Cool huh! From this work it looks like both Management & Legal 
+professions (cluster 1) experienced the most rapid growth in these 
+15 years. Let's see what we can get by exploring this data using k-means.
+
+# Reviewing the HC Results
+
+* let's review the results before moving to kmeans clustering
+* the dendogram was constructed using euclidean distance and 
+average linkage criteria
+* what this means that at the height of any given branch all observations
+belonging that branch must have an average euclidean distance amongst
+each other less than or equal to the height of that branch
+* rather than using a predefined value of k when cutting the tree
+you use the structure of the tree to make decision
+* a height of 100 thousand seems reasonable when looking at the structure
+and generates three clusters 
+* however, it would be just as reasonable to go higher to create 
+two clusters or lower to create four clusters
+* to better understand the consequence of the cut height you explore
+the resulting clusters to see if they make sense
+* more specifically to plotted the trends to these three clusters
+and used colours to compare and contrast them
+* usually this seems to be reasonable clustering with three differents 
+trends or slopes that emerge from the three clusters
+* based on this analysis one observation we can make is that two occupations
+currently had a higher growth in wages relative to the others
+* these are the management and legal occupations
+* let's review this data throught the lens of k-means clustering
+
+# Next Steps: k-means clustering
+
+* determine if any pre-processing steps are necessary
+* in customer_spend we don't need any pre-processing
+* so the first step is to empirically determine the value of k
+from the two methods we have learned
+* 'best' k using the elbow plot
+* 'best' k using the maximum average silhouette width
+* finally as with any good clustering analysis you will
+analyse your resulting clusters to see if they make sense
+and find out what you can learn from them
+* let's cluster
+
+
+# K-means: Elbow analysis
+
+In the previous exercises you used the dendrogram to propose a 
+clustering that generated 3 trees. 
+In this exercise you will leverage the k-means elbow plot to propose 
+the 'best' number of clusters.
+
+Use map_dbl() to run kmeans() using the oes data for k values 
+ranging from 1 to 10 and extract the total within-cluster sum of 
+squares value from each model: model$tot.withinss
+Store the resulting vector as tot_withinss
+
+Build a new dataframe elbow_df containing the values of k and the 
+vector of total within-cluster sum of squares
+
+Use the values in elbow_df to plot a line plot showing the relationship
+between k and total within-cluster sum of squares
+
+
+
+# Use map_dbl to run many models with varying value of k (centers)
+
+```{r}
+tot_withinss <- map_dbl(1:10,  function(k){
+  model <- kmeans(x = oes, centers = k)
+  model$tot.withinss
+})
+
+# Generate a data frame containing both k and tot_withinss
+elbow_df <- data.frame(
+  k = 1:10,
+  tot_withinss = tot_withinss
+)
+
+# Plot the elbow plot
+ggplot(elbow_df, aes(x = k, y = tot_withinss)) +
+  geom_line() +
+  scale_x_continuous(breaks = 1:10)
+
+```
+
+
+Fascinating! So the elbow analysis proposes a different value of k, 
+in the next section let's see what we can learn from Silhouette Width 
+Analysis.
+
+# K-means: Average Silhouette Widths
+
+So hierarchical clustering resulting in 3 clusters and the elbow method 
+suggests 2. In this exercise use average silhouette widths to explore 
+what the 'best' value of k should be.
+
+Use map_dbl() to run pam() using the oes data for k values ranging 
+from 2 to 10 and extract the average silhouette width value from each 
+model: model$silinfo$avg.width Store the resulting vector as sil_width
+
+Build a new dataframe sil_df containing the values of k and the vector 
+of average silhouette widths
+
+Use the values in sil_df to plot a line plot showing the relationship 
+between k and average silhouette width
+
+```{r}
+# Use map_dbl to run many models with varying value of k
+sil_width <- map_dbl(2:10,  function(k){
+  model <- pam(oes, k = k)
+  model$silinfo$avg.width
+})
+
+# Generate a data frame containing both k and sil_width
+sil_df <- data.frame(
+  k = 2:10,
+  sil_width = sil_width
+)
+
+# Plot the relationship between k and sil_width
+ggplot(sil_df, aes(x = k, y = sil_width)) +
+  geom_line() +
+  scale_x_continuous(breaks = 2:10)
+
+```
+
+
+Great work! It seems that this analysis results in another value of k, 
+this time 7 is the top contender (although 2 comes very close).
+
+
+Plot the trends using k-means clustering k=2, based on elblow plot
+and kmeans clustering: k =7, Based on Sihouette plot
+
+```{r eval=FALSE}
+"{
+  to do:
+    do it based on Hierarchical clustering
+}"
+```
+
+# The 'best' number of clusters
+
+You ran three different methods for finding the optimal number of 
+clusters and their assignments and you arrived with three different 
+answers.
+
+Below you will find a comparison between the 3 clustering results 
+(via coloring of the occupations based on the clusters to which they 
+belong).
+
+```{r}
+#oes_clusters
+clust_oes
+```
+
+
+# What can you say about the 'best' way to cluster this data?
+
+Possible Answers
+
+The clusters generated by the hierarchical clustering all have members with a euclidean distance amongst one another less than 100,000 and hence is the best clustering method.
+
+The clusters generated using k-means with a k = 2 was identified 
+using elbow analysis and hence is the best way to cluster this data.
+
+The clusters generated using k-means with a k = 7 has the largest 
+Average Silhouette Widths among the cluster and hence is the best 
+way to cluster this data.
+
+All of the above are correct but the best way to cluster is highly 
+dependent on how you would use this data after.
+
+
+All 3 statements are correct but there is no quantitative way to 
+determine which of these clustering approaches is the right one without 
+futher exploration.
+
+
+* the results of the last exercise were a littel unexpected 
+* you used three approaches for finding clusters and got three
+completely different answers
+* which of them is the right one
+* if there is one point I want you to remember from this class
+is that the answer is that it depends 
+* it depends on the clustering setup 
+* it depends on the question we are trying to answer
+* and it depends on our understanding of the data we're working on
+* to say it in another way clustering methods require a certain
+amount of subjectivity 
+*  they are the looking glass through which we can see a new perspective
+on our data
+* but it is up to us to judiciously use this perspective
+* in this case, if you would ask my opinion
+* the analysis of the Hierarchical bases analysis seems to make the 
+most sense
+* the three distinct clusters of the occupation group similar slopes
+of wage groups together while separating the unique trends that appear
+* is this always the case?
+
+# Comparing The Two Clustering Methods
+
+There are some fundamental differences between the two
+
+1. Hierachical Clustering Vs K-means
+2. Distance Used - vitually any, euclidean only
+3. Results Stable - Yes, No
+4. Evaluating number of Clusters: dendogram, sihouette, elbow vs silhouette, elbow
+5. Computation Complexity: Relatively Higher vs Relatively Lower
+
+* K-means is relatively less complex computationally to run on a much larger data within a reasonable timeframe
+* this is the reasone why k-means is so widely used 
+* this was about unsupervised clustering -what we learned
+* chapter 1 - we learned the central concept of clustering, distance
+* you learned how important scale is when calculating distance
+* chapter 2 - you learned fundamentals of hierarchical clustering,
+where you utilized distance, iteratively built a dendogram, and then
+break it down into clusters
+* chapter 3 - you worked with the kmeans clustering method and learned
+about its associated tools 
+* you learned a lot but this is just the beginning of the journey
+some of the tools you might encounter as you go into the world of clustering:
+
+k-mediods
+DBSCAN
+Optics
+
+If I can leave you with one parting thought that has helped me along my path in Data Science is that you must remember that building intuition for your method is just as if not more important than learning how to use their associated tools 
+
+* like the explorers of the old we data scientists have a lot of unchartered waters ahead us
+* best we understand how our ship works Building intuition
+
